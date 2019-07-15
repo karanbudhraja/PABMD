@@ -1,0 +1,1 @@
+->Worst configuration [2] folder: nlogo/Flocking_Predicted_1488987915815 (configuration: (1.0002134414783939, 15.72510798532174, 15.250576923836716))

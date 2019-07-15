@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h4 class="text-muted">Suggested ALPs</h4>
+    </div>
+    <div id="suggestedAlps"></div>
+    <div class="header">
+        <h4 class="text-muted">Matched Simulation</h4>
+    </div>
+    <div id="matchedSimulation"></div>
+   <div class="header">
+        <h4 class="text-muted">Predicted Behavior</h4>
+    </div>
+    <div id="predictedBehavior"></div>
+
+</div>
+
+<script>
+    function httpGetAsync_suggestedAlps(theUrl)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                var element = document.getElementById("suggestedAlps")
+                element.innerHTML = xmlHttp.responseText;
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+    function httpGetAsync_matchedSimulation(theUrl)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                var element = document.getElementById("matchedSimulation")
+
+                var img = document.createElement("IMG");
+                img.src = "data:image/jpeg;base64," + xmlHttp.responseText;
+                element.appendChild(img);
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+    function httpGetAsync_predictedBehavior(theUrl)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                var element = document.getElementById("predictedBehavior")
+
+                var img = document.createElement("IMG");
+                img.src = "data:image/jpeg;base64," + xmlHttp.responseText;
+                element.appendChild(img);
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+    httpGetAsync_suggestedAlps("http://swarm-lfd.ngrok.io/alps")
+    httpGetAsync_matchedSimulation("http://swarm-lfd.ngrok.io/match")
+    httpGetAsync_predictedBehavior("http://swarm-lfd.ngrok.io/prediction")
+
+</script>
+
+</body>
+</html>

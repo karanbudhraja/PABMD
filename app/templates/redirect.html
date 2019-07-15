@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <meta http-equiv="refresh" content="20"/>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h3 class="text-muted">Redirect</h3>
+    </div>
+    <hr/>
+    <div>
+        Upload successful. Redirecting...
+    </div>
+    <div id="fileStatus"></div>
+</div>
+
+<script>
+    function httpGetAsync(theUrl)
+    {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.onreadystatechange = function() {
+            if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                var element = document.getElementById("fileStatus")
+
+                if(xmlHttp.responseText === "True") {
+                    element.innerHTML = "Results ready.";
+
+                    // redirect to results page
+                    window.location.replace("http://swarm-lfd.ngrok.io/results");
+                }
+            }
+        }
+        xmlHttp.open("GET", theUrl, true); // true for asynchronous
+        xmlHttp.send(null);
+    }
+
+    httpGetAsync("http://swarm-lfd.ngrok.io/redirect")
+
+</script>
+
+</body>
+</html>

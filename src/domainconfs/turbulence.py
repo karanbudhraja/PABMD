@@ -1,0 +1,6 @@
+TRAINING_SIZE = 200
+VALIDATION_SIZE = 2500
+RM_GRANULARITY = 300
+REGRESSION = "sklearn.neighbors.KNeighborsRegressor()"
+
+NUM_INDEPENDENT = 2

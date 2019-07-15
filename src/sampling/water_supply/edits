@@ -1,0 +1,30 @@
+NumAgentsInit 
+100000//56805
+50000
+10000
+
+
+
+return (int) time() % 12;
+return 12
+
+------------
+
+
+slps: volume
+VolumeCalc()
+
+----------------
+
+NumAgents
+100000//56805
+10000
+
+Main
+NonresidentialDemandInit = 0.4*(NumAgentsInit*6234 + (NumAgentsInit*6083)/12)/1000000;
+change to 100000
+
+============================================================================
+
+numagents, numagentsinit,nonresidentialdemandinit
+reduce by factor of 10

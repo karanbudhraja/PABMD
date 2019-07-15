@@ -1,0 +1,137 @@
+===================
+DIRECTORY STRUCTURE
+===================
+
+data
+|
+|
+-- demonstrations
+	-> contains demonstrations (user input) for pipeline
+|
+-- demonstrations_all
+	-> contains a collection of different demonstrations (the "demonstrations" folder is a subset of this)
+|
+-- demonstrations_
+	-> "demonstrations_all" images are generated using seed(0) for NetLogo
+	-> "demonstrations_" images are generated using a different seed. the purpose of these images is to show dependency on randomization in the simulation environment
+|
+-- domaindata
+	-> contains "flocking.txt": alps paired with a list of slps for all corresponding images)
+	-> contains "processed_flocking.txt": lists of slps are averaged ot produce a single one and the entire dataset is normalized
+	-> scaling information (max and min values per column) is written to "../src/sampling/scaleData.txt"
+|
+-- nlogo_all
+	contains a collection of generated behaviours for 3 varied demonstrations (folders named corresponding to demonstration number), using different featurization methods
+
+src
+|
+|
+-- amf
+	-> contains the amf library by Don Miner
+|
+-- domainconfs
+	-> contains "descriptor_setting.sh": specifies which image descriptor to use for processing (may be image featurization 1 or 2)
+	-> contains "flocking.py": contains modeling specific information for flocking
+	-> "NUM_DEPENDENT" in "flocking.py" needs to be updated corresponding to the descriptor setting used in "descriptor_setting.sh"
+|
+-- sampling
+	|
+	|
+	-- caffe
+		-> contains caffe models used for image featurization 
+	-- keras
+		-> contains keras models used for image featurization
+	-- nlogo
+		-> contains "Flocking.nlogo": simulates flocking based on parameters and saves images over time
+	-> contains "demonstrationConfigurations.txt": information about configurations used for demonstrations in "../../data/demonstrations_all"
+	-> contains "featurize_image.py": various image featurization methods (general interface used at top to generate network and corresponding features based on descriptor used)
+	-> contains "filter_configurations": given a set of images, pick the best one based on its resemblance to the demonstration
+	-> contains "predict_flocking.java": simulate flocking using NetLogo based on input parameters
+	-> contains "process_images.py": processing all training images to generate "../../data/domaindata/flocking.txt"
+	-> contains "sampling.sh": invokes "process_images.py" and generation of "../../data/domaindata/processed_flocking.txt" (needs to be done when training model with a new featurization method)
+	-> contains "scaleData.txt": scaling information when collapsing "../../data/domaindata/flocking.txt" to "../../data/domaindata/processed_flocking.txt"
+|
+-> contains "filter.sh": invokes "sampling/filter_configurations.py" to filter possible candidate alps
+-> contains "lfd.py": runs the pipeline
+-> contains "map.py": collapses "../../data/domaindata/flocking.txt" to "../../data/domaindata/processed_flocking.txt" and generates "scaleData.txt"
+-> contains "run_lfd.sh": run the whole pipeline (sampling commented)
+-> contains "run_lfd_sampling.sh": run the sampling section of the pipeline to generate data to be used for forward and reverse mapping
+
+============
+DEPENDENCIES
+============
+
+Python	: associated libraries (some listed below based on virtual environment output for "pip list --local")
+NetLogo	: installation, jar library
+
+absl-py (0.1.10)
+backports-abc (0.5)
+backports.functools-lru-cache (1.5)
+backports.weakref (1.0.post1)
+bleach (1.5.0)
+cycler (0.10.0)
+decorator (4.2.1)
+enum34 (1.1.6)
+funcsigs (1.0.2)
+futures (3.2.0)
+html5lib (0.9999999)
+Keras (2.1.3)
+ltfatpy (1.0.12)
+Markdown (2.6.11)
+matplotlib (2.1.2)
+Mesa (0.8.3)
+mock (2.0.0)
+networkx (2.1)
+numpy (1.14.0)
+opencv-python (3.4.0.12)
+pandas (0.22.0)
+pbr (3.1.1)
+Pillow (5.0.0)
+pip (9.0.1)
+protobuf (3.5.1)
+pyparsing (2.2.0)
+python-dateutil (2.6.1)
+pytz (2018.3)
+PyWavelets (0.5.2)
+PyYAML (3.12)
+scikit-image (0.13.1)
+scikit-learn (0.19.1)
+scipy (1.0.0)
+setuptools (38.5.1)
+singledispatch (3.4.0.3)
+six (1.11.0)
+subprocess32 (3.2.7)
+tensorflow (1.5.0)
+tensorflow-tensorboard (1.5.1)
+tornado (5.0.1)
+tqdm (4.19.9)
+Werkzeug (0.14.1)
+wheel (0.30.0)
+
+================
+RUNNING THE CODE
+================
+
+1. select which feature you would want to use for data generation to train the forward and reverse mappings on
+	-> edit "src/domainconfs/descriptor_setting.sh"
+	-> this is for image featurization (1)
+
+2. ensure that "NUM_DEPENDENT" in "src/domainconfs/flocking.py" is assigned the correct value
+	-> this is the length of the feature vector used by the image featurization method selected in step 1
+
+3. ensure the first line of "_swarm-lfd-data/flocking.txt" contains as many "i"s as the number of independent variables
+	-> number of "d"s is computed based on featurization method and not using this file
+
+4. execute "src/run_lfd_sampling.sh" to generate "data/domaindata/flocking.txt" and "data/domaindata/processed_flocking.txt"
+
+5. place demonstrations that are to be replicated, in "data/demonstrations"
+
+6. execute "src/run_lfd.sh" to generate forward and reverse mappings and candidate alps
+	-> several candidates are generated
+
+7. repeat steps 1 and 2 if needed to set up image featurization (2)
+	-> if the image featurization method has been changed, then we need to do steps 3 and 4 again
+	-> this is required to generate "scaleData.txt" corresponding to these features, which is required for normalization
+	-> can be skipped if saved "scaleData.txt" corresponding to those features file is available
+
+8. execute "src/filter.sh" to filter candidate alps based on featurization
