@@ -60,8 +60,8 @@ class Experiment(object):
          if(os.path.isfile("regression_parameter.txt") == True):
             with open("regression_parameter.txt", "r") as inFile:
                regressionParameter = inFile.readlines()[0]
-            #self.regression = self.regression.replace("()", "(alpha=np.exp((-1*" + regressionParameter + ")))")
-            self.regression = self.regression.replace("()", "(n_neighbors=int(np.floor(" + regressionParameter + ")))")
+            self.regression = self.regression.replace("()", "(alpha=np.exp((-1*" + regressionParameter + ")))")
+            #self.regression = self.regression.replace("()", "(n_neighbors=int(np.floor(" + regressionParameter + ")))")
       
       # get environment variables
       self.abm = os.environ["ABM"]

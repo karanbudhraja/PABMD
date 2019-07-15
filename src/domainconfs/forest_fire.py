@@ -1,7 +1,8 @@
 TRAINING_SIZE = 200
 VALIDATION_SIZE = 2500
 RM_GRANULARITY = 300
-REGRESSION = "sklearn.neighbors.KNeighborsRegressor()"
+#REGRESSION = "sklearn.neighbors.KNeighborsRegressor()"
+REGRESSION = "GaussianProcessRegressor()"
 
 NUM_INDEPENDENT = 1
 NUM_DEPENDENT = 1
