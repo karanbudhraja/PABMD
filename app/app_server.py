@@ -5,7 +5,6 @@ import glob
 from flask import Flask, render_template, request
 from werkzeug import secure_filename
 
-
 UPLOAD_FOLDER = "sketches/"
 UPLOAD_FILENAME = "demonstration.png"
 MATCH_FOLDER = "matches/"
@@ -24,28 +23,26 @@ def root():
 def index():
     return render_template("index.html")
 
+
 @app.route("/upload", methods=["GET", "POST"])
 def upload_file():
-
     if (request.method == "POST"):
-        # get the base64 encoded image
-        encodedImage = request.form["encodedImage"]
+        # check if the post request has the file part
+        if "file" not in request.files:
+            return "No file attached to request"
+        file = request.files['file']
 
-        # save to disk
-        with open("demonstration.jpg", "wb") as outFile:
-            outFile.write(base64.b64decode(encodedImage))
+        # if user does not select file
+        # the browser submits a empty part without filename
+        if (file.filename == ""):
+            return "No file selected"
 
-        # convert to png
-        os.system("convert demonstration.jpg demonstration.png")
-        os.system("rm -f demonstration.jpg")
-            
         # clear old data
         os.system("rm -f " + UPLOAD_FOLDER + "*")
         os.system("rm -f " + MATCH_FOLDER + "*")
 
-        # save file in selected location
-        fileName = os.path.join(app.config["UPLOAD_FOLDER"], UPLOAD_FILENAME)
-        os.system("mv demonstration.png " + fileName)
+        # file selected by user
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], UPLOAD_FILENAME))
 
         # initiate matching and call pipeline background process
         os.system("rm -rf " + "../data/predictions/" + ABM + "/" + MATCH_FOLDER + "/*")

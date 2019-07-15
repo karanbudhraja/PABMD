@@ -51,17 +51,26 @@ class Experiment(object):
       self.numIndependent = execd['NUM_INDEPENDENT']
       self.regression = execd['REGRESSION']
 
-      # changes for feedback
+
+
+
+
+
+      # modify regression parameter
+      with open("regression_parameter.txt", "r") as inFile:
+         regressionParameter = inFile.readlines()[0]
+      #self.regression = "GaussianProcessRegressor(alpha=np.exp((-1*" + regressionParameter + ")))"
+
+      # using knn
+      self.regression = "sklearn.neighbors.KNeighborsRegressor()"
+      self.regression = self.regression.replace("()", "(n_neighbors=" + str(int(np.ceil(eval(regressionParameter)))) + ")")
+
+
+
+      
       if(eval(os.environ["FEEDBACK"]) == 1):
          # randomness causes too much noise for feedback
          self.validationSize = 0
-
-         # modify regression parameter
-         if(os.path.isfile("regression_parameter.txt") == True):
-            with open("regression_parameter.txt", "r") as inFile:
-               regressionParameter = inFile.readlines()[0]
-            #self.regression = self.regression.replace("()", "(alpha=np.exp((-1*" + regressionParameter + ")))")
-            self.regression = self.regression.replace("()", "(n_neighbors=int(np.floor(" + regressionParameter + ")))")
       
       # get environment variables
       self.abm = os.environ["ABM"]
@@ -692,6 +701,15 @@ def lfd(plotConfigurations=False, saveError=False):
                   dependentValues = model.transform(np.array(dependentValues).reshape(1, -1))
                   dependentValues = tuple(dependentValues[0])
 
+
+               # random dependent values
+               with open("random.txt", "r") as inFile: 
+                  randomValue = eval(inFile.readlines()[0]) 
+               randomDependentValues = randomValue/32767.0 
+               randomDependentValues = (randomDependentValues,) 
+               dependentValues = randomDependentValues
+               
+
                # if feedback is on
                # use feedback to modify queried slps
                if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
@@ -707,21 +725,26 @@ def lfd(plotConfigurations=False, saveError=False):
                # same as current demonstration slps
                queriedSlps = dependentValues
 
-               #
-               # feedback code
-               #
+
+
+
+               print >> sys.stderr, dependentValues
                
-               # random initialization if feedback is not yet applicable
-               if(eval(os.environ["FEEDBACK"]) == 1):
-                  with open("feedback_iteration.txt", "r") as inFile:
-                     iteration = eval(inFile.readlines()[0])
-                     if(iteration <= 2):
-                        with open("regression_parameter.txt", "w") as outFile:
-                           regressionParameterLowerLimit = eval(os.environ["REGRESSION_PARAMETER_LOWER_LIMIT"])
-                           regressionParameterUpperLimit = eval(os.environ["REGRESSION_PARAMETER_UPPER_LIMIT"])
-                           regressionParameter = regressionParameterLowerLimit + (regressionParameterUpperLimit-regressionParameterLowerLimit)*random.random()
-                           outFile.write(str(regressionParameter) + "\n")
-                           
+
+               # initialization
+               # if just one or two iteration so far, pick a random value
+               with open("feedback_iteration.txt", "r") as inFile:
+                  iteration = eval(inFile.readlines()[0])
+                  if(iteration <= 2):
+                     with open("regression_parameter.txt", "w") as outFile:
+                        regressionParameterUpperLimit = eval(os.environ["PARAMETER_MAX"])
+                        regressionParameter = regressionParameterUpperLimit*random.random()
+                        outFile.write(str(regressionParameter) + "\n")
+
+
+
+
+                        
                # TODO: currently only works for a single slp suggestion
                # check if file exists
                if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
@@ -736,19 +759,16 @@ def lfd(plotConfigurations=False, saveError=False):
 
                         # check consistency of suggested slps with current configuration
                         if(len(suggestedSlps) == len(dependentValues)):
-                           #
-                           # fm dataset optimization
-                           #
-                           
                            # scale suggested slps
                            # TODO: make this a common function since its used everywhere
                            suggestedSlps = tuple((suggestedSlps[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(suggestedSlps)))
+
+                           alpha = eval(os.environ["LEARNING_RATE"])
 
                            # the differential accounts for the distance from the demonstration slps 
                            # demonstration slps are currently stored as dependentValues
                            with open("feedback_iteration.txt", "r") as inFile:
                               iteration = inFile.readlines()[0].strip("\n")
-                           alpha = eval(os.environ["LEARNING_RATE_FM_DATASET"])
                            alpha /= eval(iteration)                           
                            queriedSlps = tuple([queriedSlps[index] + alpha*(dependentValues[index] - suggestedSlps[index]) for index in range(len(dependentValues))])
                            
@@ -758,9 +778,9 @@ def lfd(plotConfigurations=False, saveError=False):
                            with open("feedback_output_difference.txt", "a") as outFile:
                               outFile.write(str(dependentValues[0] - suggestedSlps[0]) + "\n")
 
-                           #
-                           # regression parameter optimization initialization
-                           #
+
+
+
 
                            # if just one iteration so far, move in a random direction
                            with open("feedback_iteration.txt", "r") as inFile:
@@ -771,6 +791,7 @@ def lfd(plotConfigurations=False, saveError=False):
                                     with open("feedback_output_difference.txt", "r") as feedbackOutputDifferenceFile:
                                        regressionParameterLines = feedbackRegressionParameterFile.readlines()
                                        outputDifferenceLines = feedbackOutputDifferenceFile.readlines()
+
                                        currentRegressionParameter = eval(regressionParameterLines[-1])
                                        previousRegressionParameter = eval(regressionParameterLines[-2])
                                        regressionParameterChange = currentRegressionParameter - previousRegressionParameter
@@ -778,13 +799,14 @@ def lfd(plotConfigurations=False, saveError=False):
                                        previousOutputDifference = eval(outputDifferenceLines[-2])
                                        outputDifferenceChange = currentOutputDifference - previousOutputDifference
                                        
-                                       alpha = eval(os.environ["LEARNING_RATE_REGRESSION_PARAMETER"])
+                                       alpha = eval(os.environ["LEARNING_RATE_"])
                                        alpha /= iteration
 
                                        # if output difference is negative, we move in direction to change
                                        nextRegressionParameter = currentRegressionParameter - regressionParameterChange*outputDifferenceChange*alpha
                                        with open("regression_parameter.txt", "w") as outFile:
                                           outFile.write(str(nextRegressionParameter) + "\n")
+                           
                               
                # TODO: currently assumes only a single demonstration at a time. fix for multiple demonstrations
                with open("queried_slps.txt", "w") as outFile:
