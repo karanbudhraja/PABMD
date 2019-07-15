@@ -19,8 +19,8 @@ def initialize():
     time.sleep(60)
     
     # index items
-    folderName = "/home/karan/storage/workspaces/bitbucket/_swarm-lfd-data/" + app.config["ABM"] + "/images_10"
-    #folderName = "/home/karan/storage/workspaces/bitbucket/_swarm-lfd-data/" + app.config["ABM"] + "/images"
+    #folderName = "/home/karan/storage/workspaces/bitbucket/_swarm-lfd-data/" + app.config["ABM"] + "/images_10"
+    folderName = "/home/karan/storage/workspaces/bitbucket/_swarm-lfd-data/" + app.config["ABM"] + "/images"
     allFileNames = glob.glob(folderName + "/*.*")
 
     for imageName in sorted(allFileNames):

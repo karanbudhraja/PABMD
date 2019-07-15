@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# go to target script directory
+cd ../src
+
+# copy to demonstration folder for lfd use
+cd ../data/demonstrations/$ABM
+rm -rf *
+mkdir sketches
+cp ../../../app/matches/* sketches
+
+# run lfd
+cd ../../../src
+./all_minus_sampling.sh

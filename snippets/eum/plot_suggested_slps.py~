@@ -1,0 +1,92 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+#demonstrations = ["a", "b", "c"]
+#demonstrations = ["_a", "_b", "_c"]
+demonstrations = ["_a"]
+
+#folderName = "error_weighted"
+folderName = "min_error"
+
+with open("../src/sampling/eum/scale_data_eum.txt", "r") as inFile:
+    allLines = inFile.readlines()
+    maxValueMean = eval(allLines[0])[-2]
+    maxValueMedian = eval(allLines[0])[-1]
+    minValueMean = eval(allLines[1])[-2]
+    minValueMedian = eval(allLines[1])[-1]
+
+for index, item in enumerate(demonstrations):
+    allPointsX = []
+    allPointsY = []
+
+    # scatter
+    
+    plt.figure()
+    with open(folderName + "/suggested_slps_" + item + ".txt", "r") as inFile:
+        for line in inFile:
+            point = eval(line)[0]
+            plt.scatter(point[0], point[1], c="b", marker="o", alpha=0.3)
+            allPointsX.append(point[0])
+            allPointsY.append(point[1])
+        plt.scatter(point[0], point[1], c="b", marker="o", alpha=0.3, label="Suggested SLPs")
+
+    with open("demonstration_slps.txt", "r") as inFile:
+        point = eval(inFile.readlines()[index])
+        plt.scatter(point[0], point[1], c="r", marker="s", alpha=1.0, label="Demonstration SLPs")
+
+    plt.scatter(np.mean(allPointsX), np.mean(allPointsY), c="g", marker="s", alpha=1.0, label="Mean SLPs")
+        
+    ax = plt.gca()
+
+    ticks = ax.get_xticks()
+    minValue = minValueMean
+    maxValue = maxValueMean
+    scaledTicks = [(value-minValue)/(maxValue-minValue) for value in ticks]
+    scaledTicks = [int(value*100)/100.0 for value in scaledTicks]
+    ax.set_xticklabels(scaledTicks)
+    
+    ticks = ax.get_yticks()
+    minValue = minValueMedian
+    maxValue = maxValueMedian
+    scaledTicks = [(value-minValue)/(maxValue-minValue) for value in ticks]
+    scaledTicks = [int(value*100)/100.0 for value in scaledTicks]
+    ax.set_yticklabels(scaledTicks)
+        
+    plt.xlabel("Maximum Area")
+    plt.ylabel("Maximum Perimeter")
+    plt.legend()
+    plt.savefig(folderName + "/suggested_slps_" + item)
+
+    # histogram
+    
+    plt.figure()
+    histogram, xEdges, yEdges = np.histogram2d(allPointsX, allPointsY, bins=100)
+    plt.imshow(histogram, interpolation='nearest', origin='low')
+    plt.xlabel("Maximum Area")
+    plt.ylabel("Maximum Perimeter")
+    plt.colorbar()
+    ax = plt.gca()
+
+    ticks = ax.get_xticks()
+    minValue = xEdges[0]
+    maxValue = xEdges[-1]
+    ticks /= 100
+    ticks = [minValue + value*(maxValue-minValue) for value in ticks]
+    minValue = minValueArea
+    maxValue = maxValueArea
+    scaledTicks = [(value-minValue)/(maxValue-minValue) for value in ticks]
+    scaledTicks = [int(value*100)/100.0 for value in scaledTicks]
+    ax.set_xticklabels(scaledTicks)
+    
+    ticks = ax.get_yticks()
+    minValue = yEdges[0]
+    maxValue = yEdges[-1]
+    ticks /= 100
+    ticks = [minValue + value*(maxValue-minValue) for value in ticks]        
+    minValue = minValuePerimeter
+    maxValue = maxValuePerimeter
+    scaledTicks = [(value-minValue)/(maxValue-minValue) for value in ticks]
+    scaledTicks = [int(value*100)/100.0 for value in scaledTicks]
+    ax.set_yticklabels(scaledTicks)
+    
+    plt.savefig(folderName + "/histogram_suggested_slps_" + item)

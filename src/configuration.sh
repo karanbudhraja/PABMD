@@ -4,9 +4,9 @@
 #######################################################################
 
 # abm being used
-export ABM="flocking"
+#export ABM="flocking"
 #export ABM="civil_violence"
-#export ABM="forest_fire"
+export ABM="forest_fire"
 #export ABM="aids"
 #export ABM="wolf_sheep"
 #export ABM="eum"
@@ -68,10 +68,7 @@ export DISTANCE_METHOD="EUCLIDEAN"
 ############
 
 export FEEDBACK=0
-export LEARNING_RATE_FM_DATASET=0.0
-export LEARNING_RATE_REGRESSION_PARAMETER=1.0
-export REGRESSION_PARAMETER_LOWER_LIMIT=1
-export REGRESSION_PARAMETER_UPPER_LIMIT=100
+export LEARNING_RATE=0.1
 
 #####################
 # dataset selection #

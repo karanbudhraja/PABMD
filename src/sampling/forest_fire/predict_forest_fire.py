@@ -44,10 +44,6 @@ def main_forest_fire(density=0.65):
     return tuple(dependentValues)
     
 def main():
-    # fixed randomness
-    # parimarily done to test feedback
-    random.seed(0)
-    
     # simulate using specific ALPs
     alpConfigurationList = eval(sys.argv[1])
 

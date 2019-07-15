@@ -1,7 +1,4 @@
 # import libraries
-import matplotlib
-matplotlib.use('Agg')
-
 import sys
 import amf
 import amf.misc as misc
@@ -12,6 +9,7 @@ import scipy.io as sio
 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import matplotlib
 
 import os
 import time
@@ -50,18 +48,6 @@ class Experiment(object):
       self.rmGranularity = execd['RM_GRANULARITY']
       self.numIndependent = execd['NUM_INDEPENDENT']
       self.regression = execd['REGRESSION']
-
-      # changes for feedback
-      if(eval(os.environ["FEEDBACK"]) == 1):
-         # randomness causes too much noise for feedback
-         self.validationSize = 0
-
-         # modify regression parameter
-         if(os.path.isfile("regression_parameter.txt") == True):
-            with open("regression_parameter.txt", "r") as inFile:
-               regressionParameter = inFile.readlines()[0]
-            #self.regression = self.regression.replace("()", "(alpha=np.exp((-1*" + regressionParameter + ")))")
-            self.regression = self.regression.replace("()", "(n_neighbors=int(np.floor(" + regressionParameter + ")))")
       
       # get environment variables
       self.abm = os.environ["ABM"]
@@ -198,23 +184,6 @@ class Experiment(object):
       simplexNumbers = []
       edgeNumbers = []
       _allConfigurations = []
-
-      # check for special case
-      # if wiggle happened, then only one configuration is returned
-      if(len(intersections[0]) == 1):
-         # configuration corresponds to simplex number 0 and edge number 0
-         # an intersection is stored as [simplexNumber][edgeNumber][configuration]
-         if(type(intersections[0][0][0]) is tuple):
-            # no simplex number is returned in this case
-            wiggledConfiguration = intersections[0][0][0]
-         else:
-            # different formats of return
-            # in this case, a default simplex and edge number is attached
-            # not sure why
-            wiggledConfiguration = intersections[0][0][1][0][1]
-            
-         allConfigurations = [list(wiggledConfiguration)]            
-         return allConfigurations
       
       for intersection in intersections:
          currentEdgeNumbers = {}
@@ -254,24 +223,46 @@ class Experiment(object):
       #plt.figure()
       #plt.hist(overlapAmount)
       #plt.savefig("overlapAmount_before_filtering.png")
+      
 
-      if(len(overlapCount) > 0):
-         #plt.figure()
-         #plt.hist(overlapCount)
-         #plt.show()
-         #sys.exit()
+
+
+
+      
+      # LOOP BEGIN
+
+      lenCommonSimplexes = []
+      lenAllConfigurationsCommon = []
+      errorMu = []
+      errorSuggested = []
+      
+      errors = []
+      for configuration in allConfigurations:
+         error = misc.list_sub(slps, fm.predict(configuration))
+         error = sum([x**2 for x in error])
+         errors.append(error)
+      _mu = np.mean(errors)
+
+      suggestedAlps = self.get_error_weighted_configurations(fm, [allConfigurations], slps)
+      error = misc.list_sub(slps, fm.predict(suggestedAlps))
+      error = sum([x**2 for x in error])
+      _error = error
+
+      for overlap in range(np.max(overlapCount)+1):
 
          overlapMean = np.mean(overlapCount)
-         commonEdges = {key : commonEdges[key] for key in commonEdges if len(commonEdges[key]) >= overlapMean}
+         overlapStdDev = np.std(overlapCount)
+         #commonEdges = {key : commonEdges[key] for key in commonEdges if len(commonEdges[key]) >= overlapMean}
+         commonEdges = {key : commonEdges[key] for key in commonEdges if len(commonEdges[key]) >= overlap}
          commonSimplexes = list(commonEdges.keys())
-
+         
          #overlapAmount = [len(commonEdges[key]) for key in commonEdges]
          #print >> sys.stderr, overlapAmount
          #plt.figure()
          #plt.hist(overlapAmount)
          #plt.savefig("overlapAmount_after_filtering.png")
          #sys.exit()
-         
+
          # now we need to cycle through the configurations again
          # only pick ones corresponding to filtered edges
          # TODO: we may want to combine configurations across SLP intersections for optimality. can we?
@@ -284,17 +275,15 @@ class Experiment(object):
                   #print >> sys.stderr, currentConfiguration
                   allConfigurationsCommon.append(currentConfiguration)
 
-         # filter configurations based on common simplexes
-         if(eval(os.environ["CONFIGURATIONS_PRUNING"]) == 1):
-            allConfigurations = allConfigurationsCommon
-      else:
-         # no overlapping edges found
-         # pruning cannot be used in this case
-         pass
+         #plt.figure()
+         #plt.hist(overlapCount)
+         #plt.show()
+         #sys.exit()
+               
 
-      # outlier detection code
-      # outlier detection based on hubness
-      # approximate labeling based on minority clustering
+         # outlier detection code
+         # outlier detection based on hubness
+         # approximate labeling based on minority clustering
 
       if(eval(os.environ["CONFIGURATIONS_OUTLIER_DETECTION"]) == 1):
          # outlier detection only valid for a dataset of minimum size
@@ -423,7 +412,7 @@ class Experiment(object):
 
          # clear memory
          del allXs, allYs, allZs, allErrors, configurationsToPlot, allConfigurationsToPlot
-
+         
       return allConfigurations
 
    # format configurations for classifiaction
@@ -692,103 +681,30 @@ def lfd(plotConfigurations=False, saveError=False):
                   dependentValues = model.transform(np.array(dependentValues).reshape(1, -1))
                   dependentValues = tuple(dependentValues[0])
 
-               # if feedback is on
-               # use feedback to modify queried slps
-               if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
-                  with open("queried_slps.txt", "r") as inFile:
-                     queriedSlps = eval(inFile.readlines()[0])
-                  slpsList.append((queriedSlps, PLOT_COLOR[plotIndex], PLOT_SHAPE[plotIndex]))
-               else:
-                  slpsList.append((dependentValues, PLOT_COLOR[plotIndex], PLOT_SHAPE[plotIndex]))
-
+               #print >> sys.stderr, "scaled dependent values: " + str(dependentValues)
+               slpsList.append((dependentValues, PLOT_COLOR[plotIndex], PLOT_SHAPE[plotIndex]))
                plotIndex += 1
 
-               # default value for queried slps
-               # same as current demonstration slps
-               queriedSlps = dependentValues
-
-               #
-               # feedback code
-               #
-               
-               # random initialization if feedback is not yet applicable
-               if(eval(os.environ["FEEDBACK"]) == 1):
-                  with open("feedback_iteration.txt", "r") as inFile:
-                     iteration = eval(inFile.readlines()[0])
-                     if(iteration <= 2):
-                        with open("regression_parameter.txt", "w") as outFile:
-                           regressionParameterLowerLimit = eval(os.environ["REGRESSION_PARAMETER_LOWER_LIMIT"])
-                           regressionParameterUpperLimit = eval(os.environ["REGRESSION_PARAMETER_UPPER_LIMIT"])
-                           regressionParameter = regressionParameterLowerLimit + (regressionParameterUpperLimit-regressionParameterLowerLimit)*random.random()
-                           outFile.write(str(regressionParameter) + "\n")
-                           
                # TODO: currently only works for a single slp suggestion
-               # check if file exists
-               if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
+               if(eval(os.environ["FEEDBACK"]) == 1): 
                   # use feedback to modify queried slps
                   with open("queried_slps.txt", "r") as inFile:
                      queriedSlps = eval(inFile.readlines()[0])
+                  with open("suggested_slps.txt", "r") as inFile:
+                     suggestedSlps = eval(inFile.readlines()[0])[0]
+                     # scale suggested slps
+                     # TODO: make this a common function since its used everywhere
+                     suggestedSlps = tuple((suggestedSlps[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(suggestedSlps)))
 
-                  # check if file exists
-                  if(os.path.isfile("suggested_slps.txt") == True):
-                     with open("suggested_slps.txt", "r") as inFile:
-                        suggestedSlps = eval(inFile.readlines()[0])[0]
-
-                        # check consistency of suggested slps with current configuration
-                        if(len(suggestedSlps) == len(dependentValues)):
-                           #
-                           # fm dataset optimization
-                           #
-                           
-                           # scale suggested slps
-                           # TODO: make this a common function since its used everywhere
-                           suggestedSlps = tuple((suggestedSlps[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(suggestedSlps)))
-
-                           # the differential accounts for the distance from the demonstration slps 
-                           # demonstration slps are currently stored as dependentValues
-                           with open("feedback_iteration.txt", "r") as inFile:
-                              iteration = inFile.readlines()[0].strip("\n")
-                           alpha = eval(os.environ["LEARNING_RATE_FM_DATASET"])
-                           alpha /= eval(iteration)                           
-                           queriedSlps = tuple([queriedSlps[index] + alpha*(dependentValues[index] - suggestedSlps[index]) for index in range(len(dependentValues))])
-                           
-                           # write data
-                           with open("feedback_input_difference.txt", "a") as outFile:
-                              outFile.write(str(np.abs(dependentValues[0] - queriedSlps[0])) + "\n")
-                           with open("feedback_output_difference.txt", "a") as outFile:
-                              outFile.write(str(dependentValues[0] - suggestedSlps[0]) + "\n")
-
-                           #
-                           # regression parameter optimization initialization
-                           #
-
-                           # if just one iteration so far, move in a random direction
-                           with open("feedback_iteration.txt", "r") as inFile:
-                              iteration = eval(inFile.readlines()[0])
-                              if(iteration > 2):
-                                 # now we do feedback stuff
-                                 with open("feedback_regression_parameter.txt", "r") as feedbackRegressionParameterFile:
-                                    with open("feedback_output_difference.txt", "r") as feedbackOutputDifferenceFile:
-                                       regressionParameterLines = feedbackRegressionParameterFile.readlines()
-                                       outputDifferenceLines = feedbackOutputDifferenceFile.readlines()
-                                       currentRegressionParameter = eval(regressionParameterLines[-1])
-                                       previousRegressionParameter = eval(regressionParameterLines[-2])
-                                       regressionParameterChange = currentRegressionParameter - previousRegressionParameter
-                                       currentOutputDifference = eval(outputDifferenceLines[-1])
-                                       previousOutputDifference = eval(outputDifferenceLines[-2])
-                                       outputDifferenceChange = currentOutputDifference - previousOutputDifference
-                                       
-                                       alpha = eval(os.environ["LEARNING_RATE_REGRESSION_PARAMETER"])
-                                       alpha /= iteration
-
-                                       # if output difference is negative, we move in direction to change
-                                       nextRegressionParameter = currentRegressionParameter - regressionParameterChange*outputDifferenceChange*alpha
-                                       with open("regression_parameter.txt", "w") as outFile:
-                                          outFile.write(str(nextRegressionParameter) + "\n")
-                              
+                  # update dependent values used for querying rm
+                  # TODO: make more complex, tune
+                  alpha = eval(os.environ["LEARNING_RATE"])
+                  feedbackSlps = tuple([queriedSlps[index] + alpha*(queriedSlps[index] - suggestedSlps[index]) for index in range(len(dependentValues))])
+                  dependentValues = feedbackSlps  
+                  
                # TODO: currently assumes only a single demonstration at a time. fix for multiple demonstrations
                with open("queried_slps.txt", "w") as outFile:
-                  outFile.write(str(queriedSlps) + "\n")
+                  outFile.write(str(dependentValues))
                
    configurationListPerRun = []
 
@@ -818,11 +734,6 @@ def lfd(plotConfigurations=False, saveError=False):
 
    print >> sys.stderr, "averageConfigurationList: " + str(averageConfigurationList)
    sys.stdout.write(str(averageConfigurationList))
-
-   if("smt" in experiment.regression):
-      # circumvent excessive prints from smt
-      with open("temp_average_configuration_list.txt", "w") as outFile:
-         outFile.write(str(averageConfigurationList) + "\n")
 
 # main function
 def main():

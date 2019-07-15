@@ -1,5 +1,6 @@
 # This script takes each row of a data set and processes it for use with AMF
 import sys
+from amf.regression import NLR
 import math
 import os
 

@@ -17,17 +17,7 @@ if [ $IMAGES == 1 ]; then
     python utils/process_training_images.py
     mv $ABM/images ../../../_swarm-lfd-data/$ABM/
 fi
-
-# extract independent component
-# generate dependent component
-# combine results
-# overwrite header file
-export INDEPENDENT_HEADER="i"
-export DEPENDENT_HEADER="d"
-export INDEPENDENT_HEADER_STRING=$(sed "s/[^"$INDEPENDENT_HEADER"']//g" <<< cat header.txt)
-export DEPENDENT_HEADER_STRING=$(printf $DEPENDENT_HEADER {1..$NUM_DEPENDENT})
-echo $INDEPENDENT_HEADER_STRING$DEPENDENT_HEADER_STRING > header.txt
-
+    
 # prepare data for amf input
 echo "==>preparing data for amf"
 python ../map.py $ABM.txt $ABM > processed_$ABM.txt
@@ -38,8 +28,6 @@ mv processed_$ABM.txt ../../data/domaindata
 
 # if image processing was used, append descriptor setting to processed filename
 if [ $IMAGES == 1 ]; then
-    # generate lower case descriptor name
-    export DESCRIPTOR_SETTING_LOWER=$(echo "$DESCRIPTOR_SETTING" | tr '[:upper:]' '[:lower:]')
     mv ../../data/domaindata/processed_$ABM.txt ../../data/domaindata/processed_$ABM"_"$DESCRIPTOR_SETTING_LOWER.txt
 fi
 

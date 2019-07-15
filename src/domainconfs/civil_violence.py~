@@ -1,0 +1,8 @@
+import amf.regression as r
+
+TRAINING_SIZES = range(30, 360, 30)
+VALIDATION_SIZE = 100
+REGRESSIONS = ( (r.kNN, []), (r.LOESS, [.05, 1]) )
+RM_GRANULARITIES = range(15, 45, 5)
+NUM_INDEPENDENT = 3
+NUM_DEPENDENT = eval(os.environ["NUM_DEPENDENT"])
