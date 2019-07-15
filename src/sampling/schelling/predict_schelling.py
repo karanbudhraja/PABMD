@@ -60,6 +60,9 @@ def main_schelling(density, minorityPc):
     return dependentValues
     
 def main():
+    # fixed randomness
+    random.seed(0)
+    
     # simulate using specific ALPs
     alpConfigurationList = eval(sys.argv[1])
 

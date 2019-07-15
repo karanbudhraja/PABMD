@@ -4,14 +4,20 @@
 #######################################################################
 
 # abm being used
-export ABM="flocking"
-#export ABM="civil_violence"
+#export ABM="flocking"
+export ABM="civil_violence"
 #export ABM="forest_fire"
 #export ABM="aids"
 #export ABM="wolf_sheep"
 #export ABM="eum"
 #export ABM="schelling"
 #export ABM="turbulence"
+#export ABM="forward_kinematics"
+#export ABM="forward_kinematics_transformed"
+#export ABM="forward_kinematics_a"
+#export ABM="forward_kinematics_b"
+#export ABM="brouwer_sin"
+
 
 # use of disk to reduce ram consumption
 export WRITE_TO_DISK=0
@@ -52,9 +58,12 @@ fi
 # check for override in case of filtering
 if [ ! -z $USE_FILTER_DESCRIPTOR_SETTING ]; then
     if [ $USE_FILTER_DESCRIPTOR_SETTING == 1 ]; then
+	# use whatever is being used before
+	:
+	
         #export DESCRIPTOR_SETTING="RESNET50"
 	#export DESCRIPTOR_SETTING="IMAGE_MATCH"
-	export DESCRIPTOR_SETTING="CONTOUR"
+	#export DESCRIPTOR_SETTING="CONTOUR"
     fi
 fi
 
@@ -84,7 +93,15 @@ export DATASET_SELECTION=1
 #########################
 
 export CONFIGURATIONS_PRUNING=1
-export CONFIGURATIONS_OUTLIER_DETECTION=1
+export CONFIGURATIONS_OUTLIER_DETECTION=0
+
+##############
+# evaluation #
+##############
+
+export EVALUATION_RANDOM=0
+export EVALUATION_CROSS_VALIDATION=1
+export RANDOM_BASELINE=0
 
 #############################
 # constants for this script #
@@ -125,6 +142,9 @@ if [ $ABM == "civil_violence" ] || [ $ABM == "forest_fire" ] || [ $ABM == "eum" 
 elif [ $ABM == "flocking" ] || [ $ABM == "aids" ] || [ $ABM == "wolf_sheep" ] || [ $ABM == "turbulence" ]; then
     export SIMULATION_TOOL="java"
     export SIMULATION_EXTENSION=""
+elif [ $ABM == "forward_kinematics" ] || [ $ABM == "brouwer_sin" ] || [ $ABM == "forward_kinematics_transformed" ]; then
+    export SIMULATION_TOOL="python"
+    export SIMULATION_EXTENSION=".py"
 fi
 
 ############################################################

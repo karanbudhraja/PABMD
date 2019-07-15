@@ -72,7 +72,14 @@ class Experiment(object):
       self.scaleDataFileName = os.environ["SCALE_DATA_FILE"]
       self.images = eval(os.environ["IMAGES"])
       self.writeToDisk = eval(os.environ["WRITE_TO_DISK"])
-      
+
+      # hack for crossvalidation
+      if(eval(os.environ["EVALUATION_CROSS_VALIDATION"]) == 1):
+         # used for slps distance
+         self.dataFileName = "../data/domaindata/cross_validation/" + os.environ["SPLIT_TRAIN_FILE_NAME"]
+         # used for alps distance
+         #self.dataFileName = "../../_swarm-lfd-data/forward_kinematics/train/" + os.environ["SPLIT_TRAIN_FILE_NAME"]
+         
       # reverse mapping configuration: ranges of agent level parameters
       self.rmConfiguration = tuple()
       for i in range(self.numIndependent):
@@ -513,6 +520,14 @@ class Experiment(object):
                [errorWeightedConfiguration, normalizationFactor, zeroErrorConfigurations] = self.process_error_weighted_configuration(configuration, fm, slps, errorWeightedConfiguration, normalizationFactor, zeroErrorConfigurations)
  
          # nomalization
+
+         ################################
+         ### DEBUG PRINTS
+         ################################
+         #print >> sys.stderr, normalizationFactor
+         #print >> sys.stderr, zeroErrorConfigurations
+         #print >> sys.stderr, errorWeightedConfiguration
+         
          for index in range(len(errorWeightedConfiguration)):
             if(zeroErrorConfigurations == 0):
                errorWeightedConfiguration[index] /= float(normalizationFactor)
@@ -598,7 +613,9 @@ class Experiment(object):
       downsampledAllConfigurationsList = []
       for allConfigurations in allConfigurationsList:
          if(len(allConfigurations) > 1):
-            downsampledAllConfigurationsList.append(random.sample(allConfigurations, len(allConfigurations)/(self.numDependent**self.numIndependent)))
+            # minimum of 1
+            numberOfSamples = max(1, len(allConfigurations)/(self.numDependent**self.numIndependent))
+            downsampledAllConfigurationsList.append(random.sample(allConfigurations, numberOfSamples))
          else:
             downsampledAllConfigurationsList.append([allConfigurations[0]])
       allConfigurationsList = downsampledAllConfigurationsList
@@ -687,11 +704,18 @@ def lfd(plotConfigurations=False, saveError=False):
                dependentValues = tuple((dependentValues[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(dependentValues)))
 
                # reduce dependent values if neccessary
-               if(eval(os.environ["REDUCED"]) == 1): 
+               if(eval(os.environ["REDUCED"]) == 1):
                   model = cPickle.load(open("sampling/utils/transforms/" + experiment.abm +"_reduced_model.p", "rb")) 
                   dependentValues = model.transform(np.array(dependentValues).reshape(1, -1))
                   dependentValues = tuple(dependentValues[0])
 
+               # hacky way to do this
+               # assuming feedback is off during evaluation
+               # overwrite dependent values from queried_slps.txt
+               if((eval(os.environ["EVALUATION_RANDOM"]) == 1) or (eval(os.environ["EVALUATION_CROSS_VALIDATION"]) == 1)):
+                  with open("queried_slps.txt", "r") as inFile:
+                     dependentValues = eval(inFile.readlines()[0].replace("\n","").strip())
+                  
                # if feedback is on
                # use feedback to modify queried slps
                if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
@@ -789,9 +813,8 @@ def lfd(plotConfigurations=False, saveError=False):
                # TODO: currently assumes only a single demonstration at a time. fix for multiple demonstrations
                with open("queried_slps.txt", "w") as outFile:
                   outFile.write(str(queriedSlps) + "\n")
-               
-   configurationListPerRun = []
 
+   configurationListPerRun = []   
    for run in range(RUNS_PER_SLPS):
       # run and query slps
       [allConfigurationsList, configurationList] = experiment.run(slpsList, plotConfigurations=plotConfigurations, saveError=saveError)
@@ -826,7 +849,47 @@ def lfd(plotConfigurations=False, saveError=False):
 
 # main function
 def main():
-   lfd(plotConfigurations=False, saveError=True)
+
+   if(eval(os.environ["RANDOM_BASELINE"]) == 1):
+      #
+      # return dummy values
+      #
+      
+      configurationFileName = os.environ["CONFIGURATION_FILE"]
+      configuration = open(configurationFileName).read()
+      execd = {}
+      exec(configuration, execd)
+      numIndependent = execd['NUM_INDEPENDENT']
+      randomIndependentValues = tuple([random.random() for _ in range(numIndependent)])
+
+      # apply scaling
+      abm = os.environ["ABM"]
+      scaleDataFileName = os.environ["SCALE_DATA_FILE"]
+      descriptorSetting = os.environ["DESCRIPTOR_SETTING"]
+      images = eval(os.environ["IMAGES"])
+      
+      # edit scale data file name based on descriptor setting
+      scaleDataFileNamePrefix = scaleDataFileName.split(".")[0]
+      scaleDataFileNameExtension = scaleDataFileName.split(".")[1]
+      scaleDataFileName = scaleDataFileNamePrefix + "_" + abm
+      if(bool(images) == True):
+         scaleDataFileName += "_" + descriptorSetting.lower()
+      scaleDataFileName += "." + scaleDataFileNameExtension
+
+      with open("sampling/" + abm + "/" + scaleDataFileName, "r") as scaleDataFile:
+         maxs = eval(scaleDataFile.readline().strip("\n"))
+         mins = eval(scaleDataFile.readline().strip("\n"))            
+
+      independentMaxs = maxs[:numIndependent]
+      independentMins = mins[:numIndependent]
+      independentValuesMax = {i: independentMaxs[i] for i in range(len(independentMaxs))}
+      independentValuesMin = {i: independentMins[i] for i in range(len(independentMins))}
+      randomIndependentValues = tuple([independentValuesMin[index] + randomIndependentValues[index]*(independentValuesMax[index]-independentValuesMin[index]) for index in range(len(randomIndependentValues))])
+      randomConfigurationList = [randomIndependentValues]
+      sys.stdout.write(str(randomConfigurationList))
+   else:
+      # use framework
+      lfd(plotConfigurations=False, saveError=True)
 
 # execute main
 main()

@@ -1,0 +1,56 @@
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=turbulence
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: turbulence
+prediction distance mean: 0.00270755535692
+random baseline distance mean: 0.00344487776544
+statistic: -0.182166999326
+pValue:0.855638039547
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=flocking
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: flocking
+prediction distance mean: 0.0523391356792
+random baseline distance mean: 0.0688411591665
+statistic: -2.63766260949
+pValue:0.00901109198613
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=schelling
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: schelling
+prediction distance mean: 0.00639104613982
+random baseline distance mean: 0.0635472818639
+statistic: -5.08651024563
+pValue:8.43574759224e-07
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=forest_fire
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: forest_fire
+prediction distance mean: 0.00371474264555
+random baseline distance mean: 0.0184283850268
+statistic: -2.41518335016
+pValue:0.0166359800328
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=eum
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: eum
+prediction distance mean: 0.0322668685827
+random baseline distance mean: 0.0580549780923
+statistic: -1.69392332825
+pValue:0.0918522775103
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=civil_violence
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: civil_violence
+prediction distance mean: 0.0633244147536
+random baseline distance mean: 0.139745899772
+statistic: -3.97870065189
+pValue:9.71695774525e-05
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ export ABM=aids
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ python evaluate_distance_significance.py 
+abm: aids
+prediction distance mean: 0.0239919154343
+random baseline distance mean: 0.062851880382
+statistic: -3.52520467872
+pValue:0.000525640951602
+karan@karan-ThinkPad-T550:~/storage/workspaces/bitbucket/swarm-lfd/src$ 
+
+----
+
+we know turbulence is because of the feature used. most normalized values are super small so it makes it hard to differentiate. the feature is bad
+for all others, we are significantly better than random
+

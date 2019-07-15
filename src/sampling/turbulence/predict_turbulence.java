@@ -72,7 +72,7 @@ public class predict_turbulence {
 		workspace.command("reset-ticks");
 		workspace.command("set coupling-strength " + k1);
 		workspace.command("set roughness " + k2);
-		//workspace.command("random-seed 0");
+		workspace.command("random-seed 0");
 		workspace.command("set initial-turbulence 50");   
 		workspace.command("set auto-continue? false");
 

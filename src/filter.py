@@ -84,7 +84,19 @@ def select_demonstration_configuratons(filterConfiguration, scaleData):
         # normalize demonstration slps
         if(scaleData is not None):
             demonstrationSlps = tuple((demonstrationSlps[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(demonstrationSlps)))
-        
+
+        # hacky way of doing this
+        # override in case of evaluation
+        # read from queried_slps.txt
+        if((eval(os.environ["EVALUATION_RANDOM"]) == 1) or (eval(os.environ["EVALUATION_CROSS_VALIDATION"]) == 1)):
+            with open("queried_slps.txt", "r") as inFile:
+                demonstrationSlps = eval(inFile.readlines()[0].replace("\n","").strip())
+
+
+        #print >> sys.stderr, "############"
+        #print >> sys.stderr, demonstrationSlps
+                
+            
         distanceList = []
         
         with open("suggested_slps.txt", "r") as suggestedSlpsFile:
@@ -95,6 +107,9 @@ def select_demonstration_configuratons(filterConfiguration, scaleData):
                 line = lines[suggestionIndex]
                 suggestedSlps = eval(line)[demonstrationIndex]
 
+                #print >> sys.stderr, "(original)"
+                #print >> sys.stderr, suggestedSlps
+                
                 if(bool(filterConfiguration.images == True)):
                     if(eval(os.environ["IMAGE_FEATURIZATION_HOMOGENEOUS"]) == 0):
                         # this is needed if the two image featurization stages are different
@@ -105,6 +120,10 @@ def select_demonstration_configuratons(filterConfiguration, scaleData):
                 # normalize suggested slps
                 if(scaleData is not None):
                     suggestedSlps = tuple((suggestedSlps[index] - dependentValuesMin[index])/(dependentValuesMax[index] - dependentValuesMin[index]) if (dependentValuesMax[index] > dependentValuesMin[index]) else dependentValuesMax[index] for index in range(len(suggestedSlps)))
+
+                #print >> sys.stderr, "(normalized)"
+                #print >> sys.stderr, suggestedSlps
+                #print >> sys.stderr, os.environ["DESCRIPTOR_SETTING"]
                 
                 # compute distance
                 if(os.environ["DISTANCE_METHOD"] == "NORMALIZED"):
@@ -112,6 +131,12 @@ def select_demonstration_configuratons(filterConfiguration, scaleData):
                 else:
                     # default option
                     distance = misc.distance(suggestedSlps, demonstrationSlps)
+
+                #print >> sys.stderr, "(demonstration)"
+                #print >> sys.stderr, demonstrationSlps                    
+                #print >> sys.stderr, "(distance)"
+                #print >> sys.stderr, distance
+                    
                 distanceList.append((distance, suggestionIndex, suggestedSlps))
 
         # select entry corresponding to smallest distance

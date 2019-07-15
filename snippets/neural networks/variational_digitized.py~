@@ -1,0 +1,262 @@
+import numpy as np
+from keras.models import Model, Sequential
+from keras.layers import Lambda, Input, Dense
+from keras.wrappers.scikit_learn import KerasRegressor
+from keras.utils import plot_model
+from keras.losses import mse
+from keras import optimizers
+from keras import backend as K
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.neighbors import KNeighborsRegressor
+import sys
+import matplotlib.pyplot as plt
+
+##############
+# parameters #
+##############
+
+# abm parameters
+abm = sys.argv[1]
+numIndependent = eval(sys.argv[2])
+numDependent = eval(sys.argv[3])
+fmOnly = eval(sys.argv[4])
+
+fmEpochs = 1000
+fmBatchSize = 32
+fmKernelInitializer = "glorot_uniform"
+fmOpt = optimizers.nadam()
+
+fmRmEpochs = 1000
+fmRmBatchSize = 32
+fmRmKernelInitializer = "glorot_uniform"
+fmRmOpt = optimizers.nadam()
+
+########
+# data #
+########
+
+# get data
+data = np.genfromtxt("../../data/domaindata/cross_validation/" + abm + "_split_0_train.txt", skip_header=1, invalid_raise=False)
+XTrain = data[:,:numIndependent]
+YTrain = data[:,-numDependent:]
+data = np.genfromtxt("../../data/domaindata/cross_validation/" + abm + "_split_0_test.txt", skip_header=0, invalid_raise=False)
+XTest = data[:,:numIndependent]
+YTest = data[:,-numDependent:]
+
+def digitize(YData):
+    YDataDigitized = np.zeros(YData.shape)
+    for index in range(YData.shape[1]):
+        dependentValues = YData[:,index]
+        bins = np.linspace(0, 1, 100)
+        binIndices = np.digitize(dependentValues, bins)
+        YDataDigitized[:,index] = binIndices
+    return YDataDigitized
+        
+YTrainDigitized = digitize(YTrain)
+YTestDigitized = digitize(YTest)
+
+plt.hist(YTrainDigitized)
+plt.show()
+
+sys.exit()
+
+# scale for testing
+#XTrain *= 10
+#YTrain *= 10
+#XTest *= 10
+#YTest *= 10
+
+#########
+# model #
+#########
+
+def sampling(args):
+    """Reparameterization trick by sampling fr an isotropic unit Gaussian.
+    # Arguments:
+        args (tensor): mean and log of variance of Q(z|X)
+    # Returns:
+        z (tensor): sampled latent vector
+    """
+
+    # reparameterization trick
+    # instead of sampling from Q(z|X), sample eps = N(0,I)
+    # z = z_mean + sqrt(var)*eps
+    
+    z_mean, z_log_var = args
+    batch = K.shape(z_mean)[0]
+    dim = K.int_shape(z_mean)[1]
+    # by default, random_normal has mean=0 and std=1.0
+    epsilon = K.random_normal(shape=(batch, dim))
+    return z_mean + K.exp(0.5 * z_log_var) * epsilon
+
+def get_fm_model(parameters):
+
+    # get parameters
+    [numIndependent, numDependent] = parameters
+    
+    # create model
+    fmInputs = Input(shape=(numIndependent,), name='fm_input')
+    fmX1 = Dense(2*numIndependent, activation='relu', kernel_initializer=fmKernelInitializer)(fmInputs)
+    fmX2 = Dense(numIndependent**2, activation='relu', kernel_initializer=fmKernelInitializer)(fmX1)
+    fmX3 = Dense(numDependent**2, activation='relu', kernel_initializer=fmKernelInitializer)(fmX2)    
+    fmX4 = Dense(2*numDependent, activation='relu', kernel_initializer=fmKernelInitializer)(fmX3)
+    fmOutputs = Dense(numDependent, activation='sigmoid', kernel_initializer=fmKernelInitializer)(fmX4)
+    fm = Model(fmInputs, fmOutputs, name='fm')
+
+    return fm
+
+def get_fm_model_compiled(parameters):
+
+    # get and compile model
+    fm = get_fm_model(parameters)
+    fm.summary()
+    plot_model(fm, to_file='fm_independent.png', show_shapes=True)
+    fm.compile(loss="mean_squared_error", optimizer=fmOpt)
+
+    return fm
+
+def reconstruction_loss(zParameters):
+    def loss(y_true, y_pred):
+        # kl loss
+        [zMean, zLogVar] = zParameters
+        klLoss = 1 + zLogVar - K.square(zMean) - K.exp(zLogVar)
+        klLoss = K.sum(klLoss, axis=-1)
+        klLoss *= -0.5
+
+        # reconstruction loss
+        reconstructionLoss = mse(y_pred, y_true)
+        reconstructionLoss *= numDependent
+
+        # total loss
+        #variationalLoss = K.mean(reconstructionLoss + klLoss)
+        variationalLoss = K.mean(reconstructionLoss)
+        
+        # return loss value
+        return variationalLoss
+
+    # return function
+    return loss
+
+def get_rm_fm_model(parameters):
+
+    # get parameters
+    [numIndependent, numDependent, fmWeights] = parameters
+    
+    # create model
+    # the vae has a modular design
+    # the encoder, decoder and vae are 3 models that share weights
+    latentDimension = 2*numIndependent
+    
+    # encode slps to latent variables
+    encoderInputs = Input(shape=(numDependent,), name='encoder_input')
+    e1 = Dense(2*numDependent, activation='relu', kernel_initializer=fmRmKernelInitializer)(encoderInputs)
+    zMean = Dense(latentDimension, name='zMean', kernel_initializer=fmRmKernelInitializer)(e1)
+    zLogVar = Dense(latentDimension, name='zLogVar', kernel_initializer=fmRmKernelInitializer)(e1)
+    z = Lambda(sampling, output_shape=(latentDimension,), name='z')([zMean, zLogVar])
+    encoder = Model(encoderInputs, [zMean, zLogVar, z], name='encoder')
+    encoder.summary()
+    plot_model(encoder, to_file='encoder.png', show_shapes=True)
+    
+    # decode to alps
+    decoderInputs = Input(shape=(latentDimension,), name='decoder_input')
+    d1 = Dense(2*numIndependent, activation='relu', kernel_initializer=fmRmKernelInitializer)(decoderInputs)
+    decoderOutputs = Dense(numIndependent, activation='sigmoid', kernel_initializer=fmRmKernelInitializer)(d1)
+    decoder = Model(decoderInputs, decoderOutputs, name='decoder')
+    decoder.summary()
+    plot_model(decoder, to_file='decoder.png', show_shapes=True)
+    
+    # alps to slps
+    fm = get_fm_model([numIndependent, numDependent])
+    fm.summary()
+    plot_model(fm, to_file='fm.png', show_shapes=True)
+    
+    # combine
+    _decoderOutputs = decoder(encoder(encoderInputs)[2])
+    fmOutputs = fm(_decoderOutputs)
+    model = Model(encoderInputs, fmOutputs, name='model')
+    model.summary()
+    plot_model(model, to_file='model.png', show_shapes=True)
+
+    # freeze fm layers
+    # set weights based on trained fm
+    for layer in model.layers:
+        if(layer.name == "fm"):
+            layer.trainable = False
+            layer.set_weights(fmWeights)
+                
+    # define loss and optimizer
+    model.compile(loss=reconstruction_loss([zMean, zLogVar]), optimizer=fmRmOpt)
+    
+    return model 
+
+# fix randomness for consistency
+np.random.seed(0)
+
+# fm
+estimators = []
+estimators.append(('preprocessing', StandardScaler()))
+estimators.append(('network', KerasRegressor(build_fn=get_fm_model_compiled, parameters=[numIndependent, numDependent], epochs=fmEpochs, batch_size=fmBatchSize, verbose=1)))
+pipeline = Pipeline(estimators)
+pipeline.fit(XTrain, YTrain)
+
+# test fm
+YPredicted = pipeline.predict(XTrain).reshape(YTrain.shape)
+fmTrainError = np.linalg.norm(YTrain-YPredicted, axis=1)
+YPredicted = pipeline.predict(XTest).reshape(YTest.shape)
+fmTestError = np.linalg.norm(YTest-YPredicted, axis=1)
+
+if(fmOnly == True):
+    # print error and exit if
+    for errorName, error in zip(["fm train", "fm test"], [fmTrainError, fmTestError]):
+        print("===")
+        print(errorName)
+        print("---")
+        print("Mean Error (L2 Distance): " + str(np.mean(error)) + " (" + str(np.std(error)) + ")")
+        print("Mean Error (Squared Error): " + str(np.mean(error**2)) + " (" + str(np.std(error**2)) + ")")
+        print("===")
+
+    # knn for comparison
+    kNN = KNeighborsRegressor()
+    kNN.fit(XTrain, YTrain)
+    YPredicted = kNN.predict(XTrain).reshape(YTrain.shape)
+    fmTrainError = np.linalg.norm(YTrain-YPredicted, axis=1)
+    YPredicted = kNN.predict(XTest).reshape(YTest.shape)
+    fmTestError = np.linalg.norm(YTest-YPredicted, axis=1)
+
+    for errorName, error in zip(["knn train", "knn test"], [fmTrainError, fmTestError]):
+        print("===")
+        print(errorName)
+        print("---")
+        print("Mean Error (L2 Distance): " + str(np.mean(error)) + " (" + str(np.std(error)) + ")")
+        print("Mean Error (Squared Error): " + str(np.mean(error**2)) + " (" + str(np.std(error**2)) + ")")
+        print("===")
+
+    sys.exit()
+    
+# get fm weights
+fmWeights = pipeline.named_steps.network.model.get_weights()
+
+# rm + fm
+estimators = []
+estimators.append(('preprocessing', StandardScaler()))
+estimators.append(('network', KerasRegressor(build_fn=get_rm_fm_model, parameters=[numIndependent, numDependent, fmWeights], epochs=fmRmEpochs, batch_size=fmRmBatchSize, verbose=1)))
+pipeline = Pipeline(estimators)
+pipeline.fit(YTrain, YTrain)
+
+# test rm + fm
+YPredicted = pipeline.predict(YTrain).reshape(YTrain.shape)
+rmFmTrainError = np.linalg.norm(YTrain-YPredicted, axis=1)
+YPredicted = pipeline.predict(YTest).reshape(YTest.shape)
+rmFmTestError = np.linalg.norm(YTest-YPredicted, axis=1)
+
+# print error
+for errorName, error in zip(["fm train", "fm test", "rm+fm train", "rm+fm test"], [fmTrainError, fmTestError, rmFmTrainError, rmFmTestError]):
+    print("===")
+    print(errorName)
+    print("---")
+    print("Mean Error (L2 Distance): " + str(np.mean(error)) + " (" + str(np.std(error)) + ")")
+    print("Mean Error (Squared Error): " + str(np.mean(error**2)) + " (" + str(np.std(error**2)) + ")")
+    print("===")

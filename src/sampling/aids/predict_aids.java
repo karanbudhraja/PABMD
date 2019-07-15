@@ -27,7 +27,7 @@ public class predict_aids {
 		ArrayList<String> alpValues = new ArrayList<String>(Arrays.asList(alpConfiguration.split(",")));
 
 		workspace.open("sampling/aids/AIDS.nlogo");
-
+		workspace.command("random-seed 0");
 		workspace.command("set initial-people 300");
 		workspace.command("set average-coupling-tendency 3");
 		workspace.command("set average-commitment 2");   
