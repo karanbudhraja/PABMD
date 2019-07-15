@@ -68,10 +68,7 @@ export DISTANCE_METHOD="EUCLIDEAN"
 ############
 
 export FEEDBACK=0
-export LEARNING_RATE_FM_DATASET=0.0
-export LEARNING_RATE_REGRESSION_PARAMETER=1.0
-export REGRESSION_PARAMETER_LOWER_LIMIT=1
-export REGRESSION_PARAMETER_UPPER_LIMIT=100
+export LEARNING_RATE=0.1
 
 #####################
 # dataset selection #
@@ -144,7 +141,7 @@ if [ $IMAGES == 1 ]; then
     if [ "$DESCRIPTOR_SETTING" == "DENSITY" ]; then
 	    export NUM_DEPENDENT=1
     elif [ "$DESCRIPTOR_SETTING" == "CONTOUR" ]; then
-	    export NUM_DEPENDENT=2
+	    export NUM_DEPENDENT=1
     elif [ "$DESCRIPTOR_SETTING" == "LBP" ]; then
 	    export NUM_DEPENDENT=128
     elif [ "$DESCRIPTOR_SETTING" == "MNIST" ]; then

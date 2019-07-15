@@ -93,6 +93,9 @@ def get_contour_features(net, imageName):
     maxArea = max(areas)
     maxPerimeter = max(perimeters)
     features = [maxArea, maxPerimeter]
+
+    features = [np.sum(areas)]
+    
     return features
 
 import sys

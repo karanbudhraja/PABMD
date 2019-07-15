@@ -15,10 +15,7 @@ do
     echo "=>running experiment"
     export ALP_CONFIGURATIONS=$(python lfd.py)
     echo $ALP_CONFIGURATIONS >> suggested_alps.txt
-    
-    # circumvent excessive prints from smt 
-    mv temp_average_configuration_list.txt suggested_alps.txt 2>/dev/null
-    
+
     if [ $WRITE_TO_DISK == 1 ]; then
         # remove compressed pickle files generated for this run
         rm *.pgz

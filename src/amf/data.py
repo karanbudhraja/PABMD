@@ -110,17 +110,9 @@ def random_subsets(data_set, n_list, demonstrationDescriptors=[]):
       # for each sublength
       # corresponding to each demonstration
       for index in range(len(nListSubLengths)):
-         # if feedback is on
-         # compute distances based on queried slps and not demonstration descriptors
-         if((eval(os.environ["FEEDBACK"]) == 1) and (os.path.isfile("queried_slps.txt") == True)):
-            with open("queried_slps.txt", "r") as inFile:
-               queriedSlps = [eval(inFile.readlines()[0])]
-            distances = [(misc.distance(queriedSlps[index], data_set[idx][1]), idx) for idx in idxs]
-         else:
-            # get distances of all descriptors in dataset
-            # with respect to the input descriptor
-            distances = [(misc.distance(demonstrationDescriptors[index], data_set[idx][1]), idx) for idx in idxs]
-
+         # get distances of all descriptors in dataset
+         # with respect to the input descriptor
+         distances = [(misc.distance(demonstrationDescriptors[index], data_set[idx][1]), idx) for idx in idxs]
          distances.sort()
 
          # extract first few as needed
@@ -135,7 +127,7 @@ def random_subsets(data_set, n_list, demonstrationDescriptors=[]):
       # point sampling has already been done from the full dataset
       # now we are dealing with individual dep value correspondences for a given ind configuration
       random.shuffle(idxs)
-   
+
    # now form subsets based on sequence of indexes
    subsets = []
    cur_offset = 0
