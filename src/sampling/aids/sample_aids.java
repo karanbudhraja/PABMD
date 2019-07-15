@@ -12,7 +12,7 @@ public class sample_aids {
         HeadlessWorkspace workspace = HeadlessWorkspace.newInstance() ;
         try {
             workspace.open("aids/AIDS.nlogo");
-
+	    workspace.command("random-seed 0");
        	    workspace.command("set initial-people 300");
             workspace.command("set average-coupling-tendency 3");
             workspace.command("set average-commitment 2");   
