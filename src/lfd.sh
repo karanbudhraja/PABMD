@@ -3,7 +3,7 @@
 source configuration.sh
 
 # run multiple times to generate multiple sets of images
-export RUNS_PER_INPUT=1
+export RUNS_PER_INPUT=10
 
 # remove existing data
 rm -f suggested_alps.txt

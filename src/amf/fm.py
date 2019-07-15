@@ -29,7 +29,7 @@ class ForwardMapping(object):
       for mapper, tset in zip(self._mappers, training_sets):
          X = np.array([list(x[0]) for x in tset])
          Y = np.array([x[1] for x in tset])
-         
+
          if("smt" in str(mapper)):
             # using surrogate modeling toolbox
             X = np.array([x[0] for x in X])
@@ -79,6 +79,7 @@ class ForwardMapping(object):
          else:
             mapperPrediction = mapper.predict(np.array(list(configuration)).reshape(1, -1))            
          prediction.append(mapperPrediction)
+         
       prediction = tuple([x[0] for x in prediction])
       
       return prediction

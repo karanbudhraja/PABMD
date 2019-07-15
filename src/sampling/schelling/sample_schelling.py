@@ -64,6 +64,9 @@ def main_schelling(density, minorityPc):
 
     
 def main():
+    # fixed randomness
+    random.seed(0)
+    
     # header string
     print("i"*INDEPENDENT_VARIABLES + "d"*DEPENDENT_VARIABLES)
 

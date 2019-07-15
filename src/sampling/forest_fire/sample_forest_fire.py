@@ -47,7 +47,9 @@ def main_forest_fire(density=0.65):
     print(line)
     
 def main():
-
+    # fixed randomness
+    random.seed(0)
+    
     # header string
     print("i"*INDEPENDENT_VARIABLES + "d"*DEPENDENT_VARIABLES)
 
